@@ -256,8 +256,9 @@ public static class SurgerySceneRefinement
 
     static Mesh CreateDrapeMesh()
     {
-        const int nx = 18, nz = 14;
-        const float x0 = -0.89f, x1 = 0.08f, z0 = -0.68f, z1 = 0.42f;
+        // The cloth overlaps the lower abdomen and hangs to the mattress.
+        const int nx = 28, nz = 22;
+        const float x0 = -0.96f, x1 = 0.14f, z0 = -0.69f, z1 = 0.37f;
         var vertices = new List<Vector3>();
         var uv = new List<Vector2>();
         var triangles = new List<int>();
@@ -268,10 +269,14 @@ public static class SurgerySceneRefinement
                 var v = (float)zi / nz;
                 var x = Mathf.Lerp(x0, x1, u);
                 var z = Mathf.Lerp(z0, z1, v);
-                var fold = 0.008f * Mathf.Sin(6f * Mathf.PI * u + 1.3f * v) +
-                    0.004f * Mathf.Sin(11f * Mathf.PI * v);
-                vertices.Add(new Vector3(x, 0.745f + fold, z));
-                uv.Add(new Vector2(u * 2f, v * 2f));
+                var center = Mathf.Sin(Mathf.PI * v);
+                // A slight rise at the hips and shallow pleats suggest cloth
+                // over the body without the steep profile of a rigid tent.
+                var fold = center * (0.011f * Mathf.Sin(7f * Mathf.PI * u + 2f * v) +
+                    0.004f * Mathf.Sin(15f * Mathf.PI * v));
+                var height = 0.77f + 0.035f * u + 0.012f * center + fold;
+                vertices.Add(new Vector3(x, height, z));
+                uv.Add(new Vector2(u * 3f, v * 3f));
             }
         for (var zi = 0; zi < nz; ++zi)
             for (var xi = 0; xi < nx; ++xi)
@@ -286,12 +291,27 @@ public static class SurgerySceneRefinement
         AddSkirt(vertices, uv, triangles, nx, nz, true, nz);
         AddSkirt(vertices, uv, triangles, nx, nz, false, 0);
         AddSkirt(vertices, uv, triangles, nx, nz, false, nx);
+        // Both faces remain opaque from the head and the foot of the bed.
+        var frontCount = triangles.Count;
+        for (var i = 0; i < frontCount; i += 3)
+            triangles.AddRange(new[] { triangles[i], triangles[i + 2], triangles[i + 1] });
         var mesh = new Mesh { name = "Wrinkled sterile patient drape", indexFormat =
             UnityEngine.Rendering.IndexFormat.UInt32 };
         mesh.SetVertices(vertices);
         mesh.SetUVs(0, uv);
         mesh.SetTriangles(triangles, 0);
-        mesh.RecalculateNormals();
+        // Calculate lighting from the outward faces only. Averaging both
+        // windings would cancel the normals and make the cloth look flat.
+        var normals = new Vector3[vertices.Count];
+        for (var i = 0; i < frontCount; i += 3)
+        {
+            var a = triangles[i]; var b = triangles[i + 1]; var c = triangles[i + 2];
+            var face = Vector3.Cross(vertices[b] - vertices[a], vertices[c] - vertices[a]);
+            normals[a] += face; normals[b] += face; normals[c] += face;
+        }
+        for (var i = 0; i < normals.Length; ++i)
+            normals[i] = normals[i].sqrMagnitude > 0.000001f ? normals[i].normalized : Vector3.up;
+        mesh.normals = normals;
         mesh.RecalculateBounds();
         var existing = AssetDatabase.LoadAssetAtPath<Mesh>(DrapePath);
         if (existing != null)
@@ -318,11 +338,12 @@ public static class SurgerySceneRefinement
             var pb = vertices[b];
             vertices.Add(pa);
             vertices.Add(pb);
-            vertices.Add(new Vector3(pa.x, 0.60f, pa.z));
-            vertices.Add(new Vector3(pb.x, 0.60f, pb.z));
+            vertices.Add(new Vector3(pa.x, 0.585f, pa.z));
+            vertices.Add(new Vector3(pb.x, 0.585f, pb.z));
             uv.AddRange(new[] { Vector2.zero, Vector2.right, Vector2.up, Vector2.one });
             triangles.AddRange(new[] { start, start + 2, start + 1,
                 start + 1, start + 2, start + 3 });
         }
     }
+
 }

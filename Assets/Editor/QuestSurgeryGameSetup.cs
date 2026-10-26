@@ -376,6 +376,12 @@ public static class QuestSurgeryGameSetup
             var b = patient.TransformPoint(vertices[source[i + 1]]);
             var c = patient.TransformPoint(vertices[source[i + 2]]);
             var center = (a + b + c) / 3f;
+            // Foot details sit entirely under the sterile drape. Omit only
+            // that covered end of the skin mesh so toes cannot show through
+            // the cloth at oblique Quest viewing angles.
+            if (a.x < -0.54f && b.x < -0.54f && c.x < -0.54f &&
+                center.z > -0.48f && center.z < 0.16f)
+                continue;
             var x = (center.x - ChestX) / 0.106f;
             var z = (center.z - ChestZ) / 0.074f;
             // Keep the patient's back. Remove only front-facing skin within
