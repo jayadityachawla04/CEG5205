@@ -1,0 +1,31 @@
+# Unity-generated caches and local editor state
+/Library/
+/Temp/
+/Logs/
+/Obj/
+/UserSettings/
+/.utmp/
+/.vs/
+/.vscode/
+
+# Generated IDE files
+*.csproj
+*.sln
+*.slnx
+*.user
+*.pidb
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# OS and editor temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+
+# APKs are reproducible. Keep the current surgery build for team testing.
+/Builds/*
+!/Builds/QuestSurgeryGame.mac.apk
